@@ -1,13 +1,13 @@
 //
-//  SearchViewController.swift
-//  CineKit
+//  ScanViewController.swift
+//  SmartBus
 //
-//  Created by nguyễn văn vang on 25/8/26.
+//  Created by nguyễn văn vang on 14/9/26.
 //
 
 import UIKit
 
-class SearchViewController: UIViewController {
+class ScanViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
