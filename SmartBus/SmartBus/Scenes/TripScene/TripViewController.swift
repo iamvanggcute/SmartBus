@@ -1,13 +1,13 @@
 //
-//  LibraryViewController.swift
-//  CineKit
+//  TripViewController.swift
+//  SmartBus
 //
-//  Created by nguyễn văn vang on 25/8/26.
+//  Created by nguyễn văn vang on 14/9/26.
 //
 
 import UIKit
 
-class LibraryViewController: UIViewController {
+class TripViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
