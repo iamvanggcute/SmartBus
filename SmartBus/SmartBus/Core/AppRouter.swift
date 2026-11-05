@@ -4,7 +4,7 @@
 //
 //  Chọn màn gốc theo phiên đăng nhập và vai trò:
 //  - chưa đăng nhập / token hết hạn → màn Đăng nhập
-//  - driver_attendant → MainTabBarController (app phụ xe)
+//  - driver_attendant → DriverTripsViewController (app phụ xe)
 //  - parent → ParentHomeViewController (app phụ huynh)
 //  - supervisor_admin → không cho dùng app iOS (US01 AC5)
 //
@@ -17,6 +17,7 @@ final class AppRouter {
     private let session: SessionManager
     private let authService: AuthService
     private var expiryObserver: NSObjectProtocol?
+    private var logoutObserver: NSObjectProtocol?
 
     init(window: UIWindow, session: SessionManager = .shared, authService: AuthService = AuthService()) {
         self.window = window
@@ -31,11 +32,20 @@ final class AppRouter {
                 self?.handleSessionExpired(message: message)
             }
         }
+        logoutObserver = NotificationCenter.default.addObserver(
+            forName: .userDidLogout, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.didLogout() }
+        }
+        NetworkMonitor.shared.start()
     }
 
     deinit {
         if let expiryObserver {
             NotificationCenter.default.removeObserver(expiryObserver)
+        }
+        if let logoutObserver {
+            NotificationCenter.default.removeObserver(logoutObserver)
         }
     }
 
@@ -63,7 +73,8 @@ final class AppRouter {
     func showHome(for user: AppUser, animated: Bool = true) {
         switch user.role {
         case .driverAttendant:
-            setRoot(MainTabBarController(), animated: animated)
+            setRoot(UINavigationController(rootViewController: DriverTripsViewController()), animated: animated)
+            DriverTracking.shared.activate()
         case .parent:
             setRoot(UINavigationController(rootViewController: ParentHomeViewController(user: user)), animated: animated)
         case .supervisorAdmin:
@@ -74,6 +85,7 @@ final class AppRouter {
 
     /// Đăng xuất phía app (gọi sau khi `AuthService.logout` thành công).
     func didLogout() {
+        DriverTracking.shared.deactivate()
         session.clear()
         showLogin()
     }
@@ -92,6 +104,7 @@ final class AppRouter {
 
     private func handleSessionExpired(message: String?) {
         guard !(window.rootViewController is LoginViewController) else { return }
+        DriverTracking.shared.deactivate()
         session.clear()
         showLogin(message: message ?? "Phiên đăng nhập đã hết hạn")
     }

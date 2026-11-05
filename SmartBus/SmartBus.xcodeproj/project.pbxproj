@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C7D11D81309CA44300864FF3 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = C7D11D80309CA44300864FF3 /* SocketIO */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		C7F43C1D3058019700CC116D /* SmartBus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartBus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7D11D81309CA44300864FF3 /* SocketIO in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = SmartBus;
 			packageProductDependencies = (
+				C7D11D80309CA44300864FF3 /* SocketIO */,
 			);
 			productName = SmartBus;
 			productReference = C7F43C1D3058019700CC116D /* SmartBus.app */;
@@ -107,6 +113,9 @@
 			);
 			mainGroup = C7F43C143058019700CC116D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C7D11D7F309CA44300864FF3 /* XCRemoteSwiftPackageReference "socket" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C7F43C1E3058019700CC116D /* Products */;
 			projectDirPath = "";
@@ -148,6 +157,9 @@
 				DEVELOPMENT_TEAM = MM4DF5U4GK;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartBus/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "SafeBus dùng camera để quét thẻ QR học sinh và mã QR ghế cuối xe.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "SafeBus tiếp tục gửi vị trí xe khi khóa màn hình để phụ huynh theo dõi chuyến.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SafeBus dùng vị trí để chỉ đường tới điểm đón và gửi vị trí xe cho phụ huynh trong lúc chuyến đang chạy.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -180,6 +192,9 @@
 				DEVELOPMENT_TEAM = MM4DF5U4GK;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartBus/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "SafeBus dùng camera để quét thẻ QR học sinh và mã QR ghế cuối xe.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "SafeBus tiếp tục gửi vị trí xe khi khóa màn hình để phụ huynh theo dõi chuyến.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SafeBus dùng vị trí để chỉ đường tới điểm đón và gửi vị trí xe cho phụ huynh trong lúc chuyến đang chạy.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -345,6 +360,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C7D11D7F309CA44300864FF3 /* XCRemoteSwiftPackageReference "socket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/socketio/socket.io-client-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 16.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C7D11D80309CA44300864FF3 /* SocketIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C7D11D7F309CA44300864FF3 /* XCRemoteSwiftPackageReference "socket" */;
+			productName = SocketIO;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C7F43C153058019700CC116D /* Project object */;
 }
