@@ -5,7 +5,7 @@
 //  Chọn màn gốc theo phiên đăng nhập và vai trò:
 //  - chưa đăng nhập / token hết hạn → màn Đăng nhập
 //  - driver_attendant → DriverTripsViewController (app phụ xe)
-//  - parent → ParentHomeViewController (app phụ huynh)
+//  - parent → ParentHomeViewController (tab Các con · Thông báo · Tài khoản)
 //  - supervisor_admin → không cho dùng app iOS (US01 AC5)
 //
 
@@ -76,7 +76,8 @@ final class AppRouter {
             setRoot(UINavigationController(rootViewController: DriverTripsViewController()), animated: animated)
             DriverTracking.shared.activate()
         case .parent:
-            setRoot(UINavigationController(rootViewController: ParentHomeViewController(user: user)), animated: animated)
+            setRoot(ParentHomeViewController(user: user), animated: animated)
+            RealtimeClient.shared.connect()
         case .supervisorAdmin:
             session.clear()
             showLogin(message: "Tài khoản giám sát viên đăng nhập trên Web Admin.", animated: animated)
@@ -86,6 +87,7 @@ final class AppRouter {
     /// Đăng xuất phía app (gọi sau khi `AuthService.logout` thành công).
     func didLogout() {
         DriverTracking.shared.deactivate()
+        RealtimeClient.shared.disconnect()
         session.clear()
         showLogin()
     }
@@ -105,6 +107,7 @@ final class AppRouter {
     private func handleSessionExpired(message: String?) {
         guard !(window.rootViewController is LoginViewController) else { return }
         DriverTracking.shared.deactivate()
+        RealtimeClient.shared.disconnect()
         session.clear()
         showLogin(message: message ?? "Phiên đăng nhập đã hết hạn")
     }

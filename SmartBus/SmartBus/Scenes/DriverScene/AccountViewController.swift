@@ -2,8 +2,8 @@
 //  AccountViewController.swift
 //  SmartBus
 //
-//  Tài khoản phụ xe và đăng xuất (US16).
-//  Không cho đăng xuất khi còn chuyến đang chạy hoặc còn điểm danh chưa đồng bộ.
+//  Tài khoản và đăng xuất (US16), dùng chung cho phụ xe và phụ huynh.
+//  Phụ xe: không cho đăng xuất khi còn chuyến đang chạy hoặc còn điểm danh chưa đồng bộ.
 //
 
 import UIKit
@@ -32,7 +32,7 @@ final class AccountViewController: UITableViewController {
         return [
             ("Họ tên", user.fullName),
             ("Tên đăng nhập", user.username),
-            ("Vai trò", "Phụ xe"),
+            ("Vai trò", user.role == .parent ? "Phụ huynh" : "Phụ xe"),
             ("Điện thoại", user.phone ?? "—"),
             ("Email", user.email ?? "—")
         ]
@@ -45,7 +45,8 @@ final class AccountViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        section == 1 ? "Cần hoàn tất chuyến và đồng bộ hết điểm danh trước khi đăng xuất." : nil
+        guard section == 1, SessionManager.shared.currentUser?.role == .driverAttendant else { return nil }
+        return "Cần hoàn tất chuyến và đồng bộ hết điểm danh trước khi đăng xuất."
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -83,7 +84,8 @@ final class AccountViewController: UITableViewController {
             return
         }
 
-        let confirm = UIAlertController(title: "Đăng xuất?", message: "Dữ liệu chuyến lưu trên máy sẽ bị xóa.", preferredStyle: .alert)
+        let isDriver = SessionManager.shared.currentUser?.role == .driverAttendant
+        let confirm = UIAlertController(title: "Đăng xuất?", message: isDriver ? "Dữ liệu chuyến lưu trên máy sẽ bị xóa." : nil, preferredStyle: .alert)
         confirm.addAction(UIAlertAction(title: "Hủy", style: .cancel))
         confirm.addAction(UIAlertAction(title: "Đăng xuất", style: .destructive) { [weak self] _ in
             self?.logout()

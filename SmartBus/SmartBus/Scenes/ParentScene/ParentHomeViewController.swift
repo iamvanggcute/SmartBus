@@ -2,50 +2,65 @@
 //  ParentHomeViewController.swift
 //  SmartBus
 //
-//  Màn tạm cho vai trò phụ huynh, để luồng đăng nhập chạy được trọn vẹn.
-//  Sẽ thay bằng màn "Các con" (GET /parent/children) ở bước sau.
+//  Khung app phụ huynh: tab Các con · Thông báo · Tài khoản (theo thiết kế P-Children).
+//  Giữ số thông báo chưa đọc trên badge, cập nhật khi có `notification:new`.
+//  Tab Đơn nghỉ thêm ở nhánh feature/parent-absence.
 //
 
 import UIKit
 
-final class ParentHomeViewController: UIViewController {
+final class ParentHomeViewController: UITabBarController {
     private let user: AppUser
+    private let service = ParentService()
+    private var observers: [NSObjectProtocol] = []
+    private var notificationsNav: UINavigationController?
 
     init(user: AppUser) {
         self.user = user
         super.init(nibName: nil, bundle: nil)
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    deinit {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) }
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Theme.background
-        title = "Các con"
+        tabBar.tintColor = Theme.primary
 
-        let greeting = UILabel()
-        greeting.text = "Xin chào, \(user.fullName)"
-        greeting.font = .systemFont(ofSize: 22, weight: .bold)
-        greeting.textColor = Theme.ink
-        greeting.numberOfLines = 0
+        let childrenNav = UINavigationController(rootViewController: ChildrenViewController(user: user))
+        childrenNav.tabBarItem = UITabBarItem(title: "Các con", image: UIImage(systemName: "person.2"), selectedImage: UIImage(systemName: "person.2.fill"))
 
-        let note = UILabel()
-        note.text = "Màn danh sách các con đang được phát triển."
-        note.font = .systemFont(ofSize: 15)
-        note.textColor = Theme.muted
-        note.numberOfLines = 0
+        let notifications = UINavigationController(rootViewController: NotificationsViewController())
+        notifications.tabBarItem = UITabBarItem(title: "Thông báo", image: UIImage(systemName: "bell"), selectedImage: UIImage(systemName: "bell.fill"))
+        notificationsNav = notifications
 
-        let stack = UIStackView(arrangedSubviews: [greeting, note])
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
-        ])
+        let account = UINavigationController(rootViewController: AccountViewController())
+        account.tabBarItem = UITabBarItem(title: "Tài khoản", image: UIImage(systemName: "person.crop.circle"), selectedImage: UIImage(systemName: "person.crop.circle.fill"))
+
+        viewControllers = [childrenNav, notifications, account]
+
+        observers.append(NotificationCenter.default.addObserver(forName: .appNotificationReceived, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshUnreadCount() }
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: .realtimeStatusDidChange, object: nil, queue: .main) { [weak self] _ in
+            // Kết nối lại sau khi mất mạng: có thể đã lỡ thông báo, lấy lại số chưa đọc.
+            MainActor.assumeIsolated {
+                if RealtimeClient.shared.isConnected { self?.refreshUnreadCount() }
+            }
+        })
+        refreshUnreadCount()
+    }
+
+    func setUnreadCount(_ count: Int) {
+        notificationsNav?.tabBarItem.badgeValue = count > 0 ? (count > 99 ? "99+" : "\(count)") : nil
+    }
+
+    func refreshUnreadCount() {
+        Task {
+            if let count = try? await service.unreadCount() { setUnreadCount(count) }
+        }
     }
 }

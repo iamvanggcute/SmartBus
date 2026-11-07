@@ -35,6 +35,11 @@ final class APIClient {
 
     /// Gửi request và trả về phần `data` của envelope.
     func send<Response: Decodable>(_ endpoint: Endpoint, as type: Response.Type = Response.self) async throws -> Response {
+        try await sendWithMeta(endpoint, as: type).data
+    }
+
+    /// Như `send`, kèm `meta` (phân trang, `unread_count`…).
+    func sendWithMeta<Response: Decodable>(_ endpoint: Endpoint, as type: Response.Type = Response.self) async throws -> (data: Response, meta: APIMeta?) {
         let request = try makeRequest(for: endpoint)
 
         let data: Data
@@ -51,7 +56,8 @@ final class APIClient {
 
         if (200..<300).contains(http.statusCode) {
             do {
-                return try decoder.decode(APIEnvelope<Response>.self, from: data).data
+                let envelope = try decoder.decode(APIEnvelope<Response>.self, from: data)
+                return (envelope.data, envelope.meta)
             } catch {
                 #if DEBUG
                 print("[APIClient] Decode lỗi \(endpoint.path): \(error)")
