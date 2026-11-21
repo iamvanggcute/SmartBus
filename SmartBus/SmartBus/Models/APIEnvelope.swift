@@ -17,6 +17,8 @@ struct APIEnvelope<T: Decodable>: Decodable {
 struct APIMeta: Decodable {
     let timestampMs: Int64?
     let pagination: Pagination?
+    /// Chỉ có ở GET /notifications (04 §12).
+    let unreadCount: Int?
 }
 
 struct Pagination: Decodable {

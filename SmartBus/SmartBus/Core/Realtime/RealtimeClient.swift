@@ -15,6 +15,24 @@ extension Notification.Name {
     /// object: `ManifestRemoteChange`
     static let manifestDidChangeRemotely = Notification.Name("SmartBus.manifestDidChangeRemotely")
     static let realtimeStatusDidChange = Notification.Name("SmartBus.realtimeStatusDidChange")
+    /// object: `TripLocationUpdate` (`trip:location_updated`)
+    static let tripLocationDidUpdate = Notification.Name("SmartBus.tripLocationDidUpdate")
+    /// userInfo["trip_id"], ["status"] (`trip:status_changed`)
+    static let tripStatusDidChange = Notification.Name("SmartBus.tripStatusDidChange")
+    /// userInfo["trip_id"] (`trip:stop_arrived`)
+    static let tripStopDidArrive = Notification.Name("SmartBus.tripStopDidArrive")
+    /// object: `AppNotification` (`notification:new`, room user:<id>)
+    static let appNotificationReceived = Notification.Name("SmartBus.appNotificationReceived")
+}
+
+/// `trip:location_updated` { trip_id, vehicle_id, latitude, longitude, speed_kmh, heading, recorded_at_ms, received_at_ms }
+struct TripLocationUpdate {
+    let tripId: String
+    let latitude: Double
+    let longitude: Double
+    let speedKmh: Double?
+    let heading: Double?
+    let recordedAtMs: Int64
 }
 
 /// `manifest:updated` { trip_id, reason, student_ids, summary_counts }
@@ -118,6 +136,16 @@ final class RealtimeClient {
         }
     }
 
+    /// Số trong payload Socket.IO có thể là Int, Double hoặc NSNumber.
+    nonisolated private static func number(_ value: Any?) -> Double? {
+        switch value {
+        case let number as NSNumber: return number.doubleValue
+        case let double as Double: return double
+        case let int as Int: return Double(int)
+        default: return nil
+        }
+    }
+
     // MARK: - Handlers
 
     private func registerHandlers(_ socket: SocketIOClient) {
@@ -160,6 +188,48 @@ final class RealtimeClient {
             guard let body = data.first as? [String: Any], let tripId = body["trip_id"] as? String else { return }
             MainActor.assumeIsolated {
                 TripSessionManager.shared.handleStopArrived(tripId: tripId)
+                NotificationCenter.default.post(name: .tripStopDidArrive, object: nil, userInfo: ["trip_id": tripId])
+            }
+        }
+
+        socket.on("trip:location_updated") { data, _ in
+            guard let body = data.first as? [String: Any],
+                  let tripId = body["trip_id"] as? String,
+                  let latitude = Self.number(body["latitude"]),
+                  let longitude = Self.number(body["longitude"]) else { return }
+            let update = TripLocationUpdate(
+                tripId: tripId, latitude: latitude, longitude: longitude,
+                speedKmh: Self.number(body["speed_kmh"]), heading: Self.number(body["heading"]),
+                recordedAtMs: Int64(Self.number(body["recorded_at_ms"]) ?? Double(Date().milliseconds))
+            )
+            MainActor.assumeIsolated {
+                NotificationCenter.default.post(name: .tripLocationDidUpdate, object: update)
+            }
+        }
+
+        socket.on("trip:status_changed") { data, _ in
+            guard let body = data.first as? [String: Any], let tripId = body["trip_id"] as? String else { return }
+            let status = body["status"] as? String ?? ""
+            MainActor.assumeIsolated {
+                NotificationCenter.default.post(name: .tripStatusDidChange, object: nil,
+                                                userInfo: ["trip_id": tripId, "status": status])
+            }
+        }
+
+        socket.on("notification:new") { data, _ in
+            guard let body = data.first as? [String: Any], let id = body["id"] as? String else { return }
+            let notification = AppNotification(
+                id: id,
+                type: body["type"] as? String ?? "",
+                title: body["title"] as? String ?? "",
+                body: body["body"] as? String ?? "",
+                tripId: body["trip_id"] as? String,
+                studentId: body["student_id"] as? String,
+                isRead: false,
+                createdAtMs: Int64(Self.number(body["created_at_ms"]) ?? Double(Date().milliseconds))
+            )
+            MainActor.assumeIsolated {
+                NotificationCenter.default.post(name: .appNotificationReceived, object: notification)
             }
         }
 
