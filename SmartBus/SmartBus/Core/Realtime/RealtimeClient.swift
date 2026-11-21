@@ -211,6 +211,7 @@ final class RealtimeClient {
             guard let body = data.first as? [String: Any], let tripId = body["trip_id"] as? String else { return }
             let status = body["status"] as? String ?? ""
             MainActor.assumeIsolated {
+                TripSessionManager.shared.handleStatusChanged(tripId: tripId)
                 NotificationCenter.default.post(name: .tripStatusDidChange, object: nil,
                                                 userInfo: ["trip_id": tripId, "status": status])
             }

@@ -74,6 +74,19 @@ final class AccountViewController: UITableViewController {
         guard indexPath.section == 1, !isLoggingOut else { return }
 
         let manager = TripSessionManager.shared
+        // Chuyến có thể đã được hoàn tất ở nơi khác: hỏi lại server rồi mới kiểm tra.
+        if manager.hasActiveTrip, NetworkMonitor.shared.isOnline {
+            Task {
+                await manager.refreshActiveSessions()
+                self.checkAndConfirmLogout()
+            }
+            return
+        }
+        checkAndConfirmLogout()
+    }
+
+    private func checkAndConfirmLogout() {
+        let manager = TripSessionManager.shared
         // Kiểm tra trên máy trước, dùng đúng câu của server (US16 AC2, AC3).
         if manager.hasActiveTrip {
             showAlert(title: "Chưa đăng xuất được", message: "Không thể đăng xuất khi đang có chuyến xe chưa hoàn tất")
