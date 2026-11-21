@@ -612,6 +612,20 @@ final class TripSessionManager {
     /// Có chuyến đang chạy trên máy (chặn đăng xuất, US16 AC2).
     var hasActiveTrip: Bool { sessions.values.contains { $0.isActive } }
 
+    /// Hỏi lại server các chuyến đang "active" trên máy. Chuyến có thể đã được hoàn tất
+    /// ở nơi khác (giám sát viên buộc kết thúc, script demo) mà máy chưa biết.
+    func refreshActiveSessions() async {
+        for session in sessions.values where session.isActive {
+            await session.refreshFromServer()
+        }
+    }
+
+    /// `trip:status_changed` hoặc danh sách chuyến cho thấy chuyến đã đổi trạng thái.
+    func handleStatusChanged(tripId: String) {
+        guard let session = sessions[tripId] else { return }
+        Task { await session.refreshFromServer() }
+    }
+
     func reset() {
         sessions.removeAll()
     }

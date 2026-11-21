@@ -125,6 +125,13 @@ final class DriverTripsViewController: UIViewController {
 
     /// Mở lại app khi chuyến đang chạy: mở phiên chuyến để tiếp tục gửi GPS và đồng bộ.
     private func resumeActiveTrip() {
+        // Chuyến server báo đã xong / đã hủy mà máy vẫn giữ "đang chạy" → cập nhật lại.
+        let manager = TripSessionManager.shared
+        if let active = manager.activeSession,
+           let server = trips.first(where: { $0.id == active.tripId }),
+           server.status == .completed || server.status == .cancelled {
+            manager.handleStatusChanged(tripId: active.tripId)
+        }
         guard TripSessionManager.shared.activeSession == nil,
               let active = trips.first(where: { $0.status == .active }) else { return }
         Task { _ = try? await TripSessionManager.shared.open(tripId: active.id) }
