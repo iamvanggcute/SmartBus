@@ -2,9 +2,8 @@
 //  ParentHomeViewController.swift
 //  SmartBus
 //
-//  Khung app phụ huynh: tab Các con · Thông báo · Tài khoản (theo thiết kế P-Children).
+//  Khung app phụ huynh: tab Các con · Thông báo · Đơn nghỉ · Tài khoản (theo thiết kế P-Children).
 //  Giữ số thông báo chưa đọc trên badge, cập nhật khi có `notification:new`.
-//  Tab Đơn nghỉ thêm ở nhánh feature/parent-absence.
 //
 
 import UIKit
@@ -37,10 +36,13 @@ final class ParentHomeViewController: UITabBarController {
         notifications.tabBarItem = UITabBarItem(title: "Thông báo", image: UIImage(systemName: "bell"), selectedImage: UIImage(systemName: "bell.fill"))
         notificationsNav = notifications
 
+        let absences = UINavigationController(rootViewController: AbsenceHistoryViewController())
+        absences.tabBarItem = UITabBarItem(title: "Đơn nghỉ", image: UIImage(systemName: "calendar"), selectedImage: UIImage(systemName: "calendar.circle.fill"))
+
         let account = UINavigationController(rootViewController: AccountViewController())
         account.tabBarItem = UITabBarItem(title: "Tài khoản", image: UIImage(systemName: "person.crop.circle"), selectedImage: UIImage(systemName: "person.crop.circle.fill"))
 
-        viewControllers = [childrenNav, notifications, account]
+        viewControllers = [childrenNav, notifications, absences, account]
 
         observers.append(NotificationCenter.default.addObserver(forName: .appNotificationReceived, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshUnreadCount() }
