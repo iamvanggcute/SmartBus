@@ -56,3 +56,15 @@ struct LogoutRequest: Encodable {
 struct LogoutResponse: Decodable {
     let message: String?
 }
+
+// MARK: - PATCH /auth/password (04 §2.4)
+
+struct ChangePasswordRequest: Encodable {
+    let currentPassword: String
+    let newPassword: String
+}
+
+struct ChangePasswordResponse: Decodable {
+    let accessToken: String
+    let expiresIn: Int
+}

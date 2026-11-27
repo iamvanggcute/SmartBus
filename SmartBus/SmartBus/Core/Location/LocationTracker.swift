@@ -57,6 +57,17 @@ final class LocationTracker: NSObject {
         }
     }
 
+    /// Bước 1: xin "Khi dùng ứng dụng" (iOS bắt buộc xin bước này trước).
+    func requestWhenInUse() {
+        manager.requestWhenInUseAuthorization()
+    }
+
+    /// Bước 2: nâng lên "Luôn luôn" để vẫn gửi vị trí khi khoá màn hình (A-Permissions).
+    /// iOS chỉ hiện hộp thoại này một lần; sau đó phải vào Cài đặt.
+    func requestAlways() {
+        manager.requestAlwaysAuthorization()
+    }
+
     func stop() {
         guard isRunning else { return }
         isRunning = false

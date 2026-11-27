@@ -9,13 +9,14 @@ import UIKit
 
 final class MessageBannerView: UIView {
     enum Style {
-        case error, warning, info
+        case error, warning, info, success
 
         var background: UIColor {
             switch self {
             case .error: return Theme.dangerSoft
             case .warning: return Theme.warningSoft
             case .info: return Theme.infoSoft
+            case .success: return Theme.successSoft
             }
         }
 
@@ -24,6 +25,7 @@ final class MessageBannerView: UIView {
             case .error: return Theme.dangerText
             case .warning: return Theme.warningText
             case .info: return Theme.infoText
+            case .success: return Theme.successText
             }
         }
 
@@ -31,6 +33,7 @@ final class MessageBannerView: UIView {
             switch self {
             case .error, .warning: return "exclamationmark.triangle.fill"
             case .info: return "info.circle.fill"
+            case .success: return "checkmark.circle.fill"
             }
         }
     }

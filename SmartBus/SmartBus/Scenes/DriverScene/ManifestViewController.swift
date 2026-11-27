@@ -14,6 +14,8 @@ final class ManifestViewController: UIViewController {
     private var filtered: [ManifestItem] = []
     private var query = ""
     private var observer: NSObjectProtocol?
+    /// Chỉ hỏi quyền một lần mỗi lần mở màn này ("Để sau" vẫn cho bắt đầu chuyến).
+    private var hasShownPermissions = false
     private var remoteObservers: [NSObjectProtocol] = []
 
     private let tableView = UITableView(frame: .zero, style: .plain)
@@ -284,6 +286,13 @@ final class ManifestViewController: UIViewController {
     }
 
     private func startTrip() {
+        // A-Permissions: còn thiếu quyền Camera / Vị trí thì giải thích và xin trước khi bắt đầu.
+        if PermissionsViewController.needsAttention, !hasShownPermissions {
+            hasShownPermissions = true
+            let permissions = PermissionsViewController { [weak self] in self?.startTrip() }
+            present(UINavigationController(rootViewController: permissions), animated: true)
+            return
+        }
         primaryButton.isEnabled = false
         Task {
             do {

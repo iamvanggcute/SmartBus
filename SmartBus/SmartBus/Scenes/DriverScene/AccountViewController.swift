@@ -2,7 +2,8 @@
 //  AccountViewController.swift
 //  SmartBus
 //
-//  Tài khoản và đăng xuất (US16), dùng chung cho phụ xe và phụ huynh.
+//  Tài khoản (thiết kế A-Account), dùng chung cho phụ xe và phụ huynh:
+//  thông tin, đổi mật khẩu (US43), quyền Camera/Vị trí (phụ xe), đăng xuất (US16, US27).
 //  Phụ xe: không cho đăng xuất khi còn chuyến đang chạy hoặc còn điểm danh chưa đồng bộ.
 //
 
@@ -38,26 +39,60 @@ final class AccountViewController: UITableViewController {
         ]
     }
 
-    override func numberOfSections(in tableView: UITableView) -> Int { 2 }
+    private enum Section: Int, CaseIterable { case info, actions, logout }
+
+    private var isDriver: Bool { SessionManager.shared.currentUser?.role == .driverAttendant }
+
+    /// Đổi mật khẩu; phụ xe có thêm Quyền Camera & Vị trí.
+    private var actionRows: [(title: String, symbol: String)] {
+        var rows: [(title: String, symbol: String)] = [("Đổi mật khẩu", "key.fill")]
+        if isDriver { rows.append(("Quyền Camera & Vị trí", "location.viewfinder")) }
+        return rows
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        tableView.reloadData() // trạng thái quyền có thể vừa đổi
+    }
+
+    override func numberOfSections(in tableView: UITableView) -> Int { Section.allCases.count }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == 0 ? infoRows.count : 1
+        switch Section(rawValue: section) {
+        case .info: return infoRows.count
+        case .actions: return actionRows.count
+        default: return 1
+        }
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        guard section == 1, SessionManager.shared.currentUser?.role == .driverAttendant else { return nil }
+        guard section == Section.logout.rawValue, isDriver else { return nil }
         return "Cần hoàn tất chuyến và đồng bộ hết điểm danh trước khi đăng xuất."
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        if indexPath.section == 0 {
+        cell.accessoryType = .none
+        if indexPath.section == Section.info.rawValue {
             var content = UIListContentConfiguration.valueCell()
             let row = infoRows[indexPath.row]
             content.text = row.0
             content.secondaryText = row.1
             cell.contentConfiguration = content
             cell.selectionStyle = .none
+        } else if indexPath.section == Section.actions.rawValue {
+            let row = actionRows[indexPath.row]
+            var content = UIListContentConfiguration.valueCell()
+            content.text = row.title
+            content.image = UIImage(systemName: row.symbol)
+            content.imageProperties.tintColor = Theme.primary
+            if indexPath.row == 1 {
+                content.secondaryText = PermissionsViewController.needsAttention ? "Chưa đủ" : "Đã cấp"
+                content.secondaryTextProperties.color = PermissionsViewController.needsAttention ? Theme.dangerText : Theme.successText
+            }
+            cell.contentConfiguration = content
+            cell.accessoryType = .disclosureIndicator
+            cell.selectionStyle = .default
         } else {
             var content = UIListContentConfiguration.cell()
             content.text = isLoggingOut ? "Đang đăng xuất…" : "Đăng xuất"
@@ -71,7 +106,12 @@ final class AccountViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        guard indexPath.section == 1, !isLoggingOut else { return }
+        if indexPath.section == Section.actions.rawValue {
+            let next: UIViewController = indexPath.row == 0 ? ChangePasswordViewController() : PermissionsViewController()
+            navigationController?.pushViewController(next, animated: true)
+            return
+        }
+        guard indexPath.section == Section.logout.rawValue, !isLoggingOut else { return }
 
         let manager = TripSessionManager.shared
         // Chuyến có thể đã được hoàn tất ở nơi khác: hỏi lại server rồi mới kiểm tra.
@@ -97,7 +137,6 @@ final class AccountViewController: UITableViewController {
             return
         }
 
-        let isDriver = SessionManager.shared.currentUser?.role == .driverAttendant
         let confirm = UIAlertController(title: "Đăng xuất?", message: isDriver ? "Dữ liệu chuyến lưu trên máy sẽ bị xóa." : nil, preferredStyle: .alert)
         confirm.addAction(UIAlertAction(title: "Hủy", style: .cancel))
         confirm.addAction(UIAlertAction(title: "Đăng xuất", style: .destructive) { [weak self] _ in
@@ -108,7 +147,7 @@ final class AccountViewController: UITableViewController {
 
     private func logout() {
         isLoggingOut = true
-        tableView.reloadSections(IndexSet(integer: 1), with: .none)
+        tableView.reloadSections(IndexSet(integer: Section.logout.rawValue), with: .none)
         Task {
             do {
                 _ = try await authService.logout(hasPendingOfflineEvents: TripSessionManager.shared.hasPendingOutbox)
@@ -119,11 +158,11 @@ final class AccountViewController: UITableViewController {
                     return
                 }
                 isLoggingOut = false
-                tableView.reloadSections(IndexSet(integer: 1), with: .none)
+                tableView.reloadSections(IndexSet(integer: Section.logout.rawValue), with: .none)
                 showAlert(title: "Chưa đăng xuất được", message: error.localizedDescription)
             } catch {
                 isLoggingOut = false
-                tableView.reloadSections(IndexSet(integer: 1), with: .none)
+                tableView.reloadSections(IndexSet(integer: Section.logout.rawValue), with: .none)
                 showAlert(title: "Chưa đăng xuất được", message: error.localizedDescription)
             }
         }

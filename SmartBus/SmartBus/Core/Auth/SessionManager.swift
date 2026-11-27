@@ -54,6 +54,13 @@ final class SessionManager {
         update(user: login.user)
     }
 
+    /// Đổi mật khẩu xong: server cấp token mới, giữ nguyên thông tin người dùng.
+    func updateToken(_ accessToken: String, expiresIn: Int) {
+        keychain.set(accessToken, for: Key.accessToken)
+        let expiry = Date().addingTimeInterval(TimeInterval(expiresIn))
+        keychain.set(String(expiry.timeIntervalSince1970), for: Key.expiresAt)
+    }
+
     func update(user: AppUser) {
         if let data = try? JSONEncoder().encode(user) {
             keychain.set(data, for: Key.user)

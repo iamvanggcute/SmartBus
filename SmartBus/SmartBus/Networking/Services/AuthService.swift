@@ -2,7 +2,7 @@
 //  AuthService.swift
 //  SmartBus
 //
-//  API xác thực (04 §2): đăng nhập, lấy thông tin tài khoản, đăng xuất.
+//  API xác thực (04 §2): đăng nhập, lấy thông tin tài khoản, đăng xuất, đổi mật khẩu.
 //
 
 import Foundation
@@ -25,6 +25,13 @@ struct AuthService {
     /// GET /auth/me — kiểm tra token còn dùng được và lấy thông tin mới nhất.
     func me() async throws -> AppUser {
         try await client.send(Endpoint(path: "auth/me"), as: MeResponse.self).user
+    }
+
+    /// PATCH /auth/password (US43) — trả token mới cho máy này; mọi phiên khác bị thu hồi.
+    /// Lỗi: WRONG_CURRENT_PASSWORD, WEAK_PASSWORD (yếu hoặc trùng mật khẩu cũ), VALIDATION_ERROR (> 72 byte).
+    func changePassword(current: String, new: String) async throws -> ChangePasswordResponse {
+        let body = ChangePasswordRequest(currentPassword: current, newPassword: new)
+        return try await client.send(Endpoint(path: "auth/password", method: .patch, body: body))
     }
 
     /// POST /auth/logout — với phụ xe, server chặn khi còn chuyến đang chạy

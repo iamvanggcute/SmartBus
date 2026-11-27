@@ -61,6 +61,9 @@ final class RealtimeClient {
     private var manager: SocketManager?
     private var socket: SocketIOClient?
     private var subscribedTripIds = Set<String>()
+    /// Đang đổi mật khẩu trên chính máy này: server sẽ gửi `session:revoked { password_changed }`
+    /// và ngắt socket TRƯỚC khi trả token mới — không được coi là bị đăng xuất.
+    private var isChangingPasswordHere = false
     private var lastGpsSentAt = Date.distantPast
     /// App chuẩn gửi 5–10 giây/lần (05 §8.1).
     private let gpsInterval: TimeInterval = 5
@@ -100,6 +103,21 @@ final class RealtimeClient {
         manager = nil
         subscribedTripIds.removeAll()
         NotificationCenter.default.post(name: .realtimeStatusDidChange, object: self)
+    }
+
+    /// Gọi ngay trước PATCH /auth/password.
+    func beginPasswordChange() {
+        isChangingPasswordHere = true
+    }
+
+    /// Gọi sau khi PATCH /auth/password xong. Thành công: kết nối lại bằng token mới và vào lại các room chuyến.
+    func endPasswordChange(succeeded: Bool) {
+        defer { isChangingPasswordHere = false }
+        guard succeeded else { return }
+        let trips = subscribedTripIds
+        disconnect()
+        subscribedTripIds = trips
+        connect()
     }
 
     /// Vào room trip:<id>. Server chỉ tự cho vào room các chuyến đang chạy lúc kết nối,
@@ -167,6 +185,8 @@ final class RealtimeClient {
             MainActor.assumeIsolated {
                 let authCodes = ["TOKEN_EXPIRED", "TOKEN_REVOKED", "ACCOUNT_SUSPENDED", "ACCOUNT_INACTIVE", "UNAUTHORIZED"]
                 guard let code = authCodes.first(where: { text.contains($0) }) else { return }
+                // Socket cũ thử nối lại bằng token vừa bị thu hồi trong lúc máy này đổi mật khẩu.
+                if self?.isChangingPasswordHere == true { return }
                 self?.disconnect()
                 let message = code == "TOKEN_EXPIRED" ? "Phiên đăng nhập đã hết hạn" : "Phiên đăng nhập không còn hiệu lực"
                 NotificationCenter.default.post(name: .sessionDidExpire,
@@ -243,6 +263,8 @@ final class RealtimeClient {
                     TripSessionManager.shared.handleTripReassigned()
                     return
                 }
+                // Chính máy này vừa đổi mật khẩu: chỉ socket cũ bị ngắt, máy vẫn đăng nhập (US43 AC3).
+                if reason == "password_changed", self?.isChangingPasswordHere == true { return }
                 self?.disconnect()
                 let message = reason == "password_changed"
                     ? "Mật khẩu vừa được đổi, vui lòng đăng nhập lại"
